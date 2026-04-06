@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Banking Basics — Learn & Practice</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body { font-family: 'Nunito', sans-serif; background-color: #e8f4fd; }
+  [data-bs-theme="dark"] body, [data-bs-theme="dark"] { background-color: #0f1117 !important; }
+
+  /* Chat window */
+  .chat-window { min-height: 480px; max-height: 560px; display: flex; flex-direction: column; overflow: hidden; }
+  .messages { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+  /* Message rows */
+  .msg { display: flex; gap: 10px; align-items: flex-end; animation: popIn 0.2s ease forwards; opacity: 0; transform: translateY(6px); }
+  .msg.user { flex-direction: row-reverse; }
+  @keyframes popIn { to { opacity: 1; transform: translateY(0); } }
+
+  /* Avatars */
+  .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+
+  /* Bubbles */
+  .bubble { max-width: 75%; padding: 10px 14px; border-radius: 16px; font-size: 0.9rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+  .bubble.user { background: #3b82f6; color: white; border-bottom-right-radius: 4px; font-weight: 600; }
+  .bubble.bot  { border-bottom-left-radius: 4px; }
+
+  /* Typing dots */
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #94a3b8; display: inline-block; animation: bounce 1.1s infinite ease-in-out; }
+  .dot:nth-child(2) { animation-delay: 0.18s; }
+  .dot:nth-child(3) { animation-delay: 0.36s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+
+  /* Balance display font */
+  .bal-amount { font-family: 'Fira Code', monospace; }
+
+  /* Status dot */
+  .status-dot { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px #dcfce7; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="container py-4" style="max-width:700px;">
+
+  <!-- Banner -->
+  <div class="card shadow-sm mb-3 border">
+    <div class="card-body d-flex align-items-center gap-3 py-3">
+      <span style="font-size:2.2rem;">🏦</span>
+      <div>
+        <h1 class="h6 fw-bold mb-0">Banking Chatbot — Learn &amp; Practice</h1>
+        <p class="text-muted small mb-0">Practice deposits, withdrawals &amp; more. It's safe — no real money!</p>
+      </div>
+      <button class="btn btn-sm btn-outline-secondary rounded-pill ms-auto" onclick="toggleDark()" id="darkBtn">🌙 Dark</button>
+      <div class="text-center rounded-3 px-3 py-2 bg-primary bg-opacity-10" style="min-width:110px;">
+        <div class="text-primary fw-bold" style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.08em;">Balance</div>
+        <div class="bal-amount text-primary fw-medium" id="balDisplay">₹10,000</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Window -->
+  <div class="card shadow-sm border chat-window mb-3">
+    <div class="card-header d-flex align-items-center gap-2 py-2 bg-body-tertiary">
+      <div class="status-dot"></div>
+      <span class="small fw-bold text-secondary">Bank Assistant · Online</span>
+    </div>
+    <div class="messages p-3 d-flex flex-column gap-3" id="messages"></div>
+    <div class="card-footer d-flex gap-2 align-items-center bg-body-tertiary">
+      <input type="text" id="userInput" class="form-control" placeholder='Try: "deposit 500" or "what is my balance?"' autocomplete="off">
+      <button class="btn btn-primary px-3" onclick="sendMessage()" title="Send">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick Buttons -->
+  <div class="mb-3">
+    <p class="text-uppercase text-secondary fw-bold mb-2" style="font-size:0.7rem;letter-spacing:.1em;">Try these</p>
+    <div class="d-flex flex-wrap gap-2">
+      <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="go('deposit 1000')">💰 Deposit ₹1,000</button>
+      <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="go('withdraw 500')">💸 Withdraw ₹500</button>
+      <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="go('balance')">⚖️ My Balance</button>
+      <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="go('transactions')">📋 Transactions</button>
+      <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="go('account details')">👤 Account Info</button>
+      <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="go('help')">❓ Help</button>
+    </div>
+  </div>
+
+  <!-- Tip Box -->
+  <div class="alert alert-warning border border-warning-subtle" style="border-style:dashed !important;">
+    <strong>💡 How this works:</strong> This is a <em>practice banking chatbot</em>. You start with <strong>₹10,000</strong>.
+    Deposit money to add funds, withdraw to spend, and check your balance anytime.
+    No real money is involved — it resets when you refresh!
+  </div>
+
+</div>
+
+<script>
+function toggleDark() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-bs-theme') === 'dark';
+  html.setAttribute('data-bs-theme', isDark ? 'light' : 'dark');
+  document.getElementById('darkBtn').textContent = isDark ? '🌙 Dark' : '☀️ Light';
+}
+
+let balance = 10000;
+const transactions = [];
+
+function fmt(n) {
+  return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function parseAmt(text) {
+  const m = text.replace('₹','').match(/[\d,]+(\.\d+)?/);
+  if (!m) return null;
+  const v = parseFloat(m[0].replace(/,/g,''));
+  return isNaN(v) || v <= 0 ? null : v;
+}
+
+function stamp() {
+  return new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+}
+
+function updateBalance() {
+  document.getElementById('balDisplay').textContent = fmt(balance);
+}
+
+function log(desc) {
+  transactions.push({ time: stamp(), desc });
+  if (transactions.length > 10) transactions.shift();
+}
+
+function botReply(input) {
+  const t = input.toLowerCase().trim();
+
+  if (t.includes('help') || t.includes('what can'))
+    return { style:'info', text:'Here\'s what I can do:\n\n📥 deposit <amount> — add money\n📤 withdraw <amount> — take out money\n⚖️ balance — check your balance\n📋 transactions — view history\n👤 account details — your info' };
+
+  if (['deposit','add','credit'].some(k => t.includes(k))) {
+    const amt = parseAmt(t);
+    if (!amt) return { style:'error', text:'Please include an amount.\nExample: "deposit 2000"' };
+    balance += amt; log('Deposited ' + fmt(amt)); updateBalance();
+    return { style:'success', text:'✅ Deposited ' + fmt(amt) + '!\nNew balance: ' + fmt(balance) };
+  }
+
+  if (['withdraw','take','debit','spend'].some(k => t.includes(k))) {
+    const amt = parseAmt(t);
+    if (!amt) return { style:'error', text:'Please include an amount.\nExample: "withdraw 500"' };
+    if (amt > balance) return { style:'error', text:'❌ Not enough money!\nYou have ' + fmt(balance) + ' but tried to withdraw ' + fmt(amt) + '.' };
+    balance -= amt; log('Withdrew ' + fmt(amt)); updateBalance();
+    return { style:'success', text:'✅ Withdrew ' + fmt(amt) + '!\nNew balance: ' + fmt(balance) };
+  }
+
+  if (['balance','bal','how much'].some(k => t.includes(k)))
+    return { style:'info', text:'Your current balance is:\n' + fmt(balance) };
+
+  if (['transaction','history','statement'].some(k => t.includes(k))) {
+    if (!transactions.length) return { style:'bot', text:'No transactions yet.\nTry depositing or withdrawing some money!' };
+    return { style:'bot', text:'Recent transactions:\n\n' + transactions.slice().reverse().map(x => '• ' + x.time + ' — ' + x.desc).join('\n') };
+  }
+
+  if (['account','detail','info','name'].some(k => t.includes(k)))
+    return { style:'bot', text:'Account Holder: Sharv Mahajan\nAccount No: •••• 7890\nBank: ABC Bank\nBranch: Mumbai' };
+
+  return { style:'bot', text:'I didn\'t quite get that 🤔\n\nTry: "deposit 1000", "withdraw 500", "balance", or tap the buttons below!' };
+}
+
+// style -> Bootstrap alert class
+const styleMap = { success:'success', error:'danger', info:'warning', bot:'light' };
+
+const msgs = document.getElementById('messages');
+
+function addMsg(who, text, style) {
+  style = style || 'bot';
+  const row = document.createElement('div');
+  row.className = 'msg ' + who;
+
+  const av = document.createElement('div');
+  av.className = 'avatar bg-' + (who === 'bot' ? 'primary bg-opacity-10' : 'secondary bg-opacity-10');
+  av.textContent = who === 'bot' ? '🤖' : '🙂';
+
+  const bub = document.createElement('div');
+  if (who === 'user') {
+    bub.className = 'bubble user';
+  } else {
+    bub.className = 'bubble bot alert alert-' + styleMap[style] + ' mb-0 py-2 px-3';
+  }
+  bub.textContent = text;
+
+  row.appendChild(av);
+  row.appendChild(bub);
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const row = document.createElement('div');
+  row.className = 'msg bot'; row.id = 'typing';
+  row.innerHTML = '<div class="avatar bg-primary bg-opacity-10">🤖</div><div class="bubble bot alert alert-light mb-0 py-2 px-3"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function hideTyping() {
+  const el = document.getElementById('typing');
+  if (el) el.remove();
+}
+
+function sendMessage() {
+  const inp = document.getElementById('userInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  addMsg('user', text);
+  inp.value = '';
+  showTyping();
+  setTimeout(function() {
+    hideTyping();
+    const r = botReply(text);
+    addMsg('bot', r.text, r.style);
+  }, 500 + Math.random() * 300);
+}
+
+function go(text) {
+  document.getElementById('userInput').value = text;
+  sendMessage();
+}
+
+document.getElementById('userInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') sendMessage();
+});
+
+addMsg('bot', 'Hi there! 👋 I\'m your practice bank assistant.\n\nYou have ₹10,000 to start with. Try depositing, withdrawing, or checking your balance.\n\nUse the buttons below or just type naturally!', 'bot');
+</script>
+</body>
+</html>
